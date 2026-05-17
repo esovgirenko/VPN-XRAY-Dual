@@ -80,8 +80,8 @@ prompt_or_default() {
 main() {
     parse_args "$@"
     check_root
-    load_relay_params
     install_deps
+    load_relay_params
     install_xray
     install_geodata
 
