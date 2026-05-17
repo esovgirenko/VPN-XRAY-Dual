@@ -1,11 +1,23 @@
-# VPN-XRAY: Антидетектный VPN на Xray-core и протоколе REALITY
+# VPN-XRAY-Dual: антидетектный VPN на Xray-core и REALITY
 
-Полноценное решение для развёртывания VPN на VPS (Ubuntu 22.04 / Debian 12) с использованием **Xray-core** и протокола **REALITY**. REALITY обеспечивает маскировку трафика через подмену TLS-рукопожатия (fingerprint spoofing) под легитимные сервисы (Cloudflare, Google и др.), делая трафик неотличимым от обычного HTTPS даже для продвинутых систем DPI.
+Репозиторий: [github.com/esovgirenko/VPN-XRAY-Dual](https://github.com/esovgirenko/VPN-XRAY-Dual)
+
+Решение для VPS (Ubuntu 22.04 / Debian 12) на базе **Xray-core** и **REALITY**: маскировка TLS-рукопожатия под легитимные сервисы (Яндекс Музыка, Cloudflare, Google и др.), трафик неотличим от обычного HTTPS для DPI.
+
+### Режимы развёртывания
+
+| Режим | Документация | Когда использовать |
+|-------|--------------|-------------------|
+| **Один сервер** | этот README, `server/install-reality.sh` | Один VPS, весь трафик через него |
+| **Два сервера (Dual)** | **[dual-server/README.md](dual-server/README.md)** | Сервер 1 (РФ): RU-трафик локально, остальное через сервер 2; сервер 2 — резервный вход |
+
+Для схемы Dual: зарубежный VPS уже с VPN-XRAY → `patch-server2.sh`; новый VPS в РФ → `install-server1.sh` (маскировка по умолчанию под **music.yandex.ru**).
 
 ---
 
 ## Оглавление
 
+- [Режим Dual (два сервера)](#режим-dual-два-сервера)
 - [Чем REALITY отличается от простой маскировки](#чем-reality-отличается-от-простой-маскировки)
 - [Требования](#требования)
 - [Структура проекта](#структура-проекта)
@@ -46,22 +58,41 @@
 ## Структура проекта
 
 ```
+├── dual-server/                 # Два VPS: split RU / abroad + резерв
+│   ├── README.md                # Полная инструкция Dual
+│   ├── patch-server2.sh         # Патч уже работающего сервера 2
+│   ├── install-server1.sh       # Установка входного сервера (РФ)
+│   ├── install-server2.sh       # Чистая установка сервера 2 (если VPN ещё нет)
+│   └── client/dual-link-gen.py  # Две vless-ссылки (основной + резерв)
 ├── server/
-│   ├── install-reality.sh      # Основной скрипт установки (интерактивный)
-│   ├── xray-reality.json.tpl   # Шаблон конфигурации (справочный)
-│   └── xray.service            # Systemd unit
+│   ├── install-reality.sh       # Один VPS (интерактивно)
+│   ├── change-dest.sh           # Смена dest / serverNames
+│   ├── change-port.sh
+│   └── xray-reality.json.tpl
 ├── client/
-│   ├── reality-link-gen.py     # Генератор ссылок и конфигов
-│   ├── requirements.txt       # qrcode
-│   └── example-config.json    # Пример клиентской конфигурации
+│   ├── reality-link-gen.py      # Генератор vless:// и QR
+│   └── setup-venv.sh
 ├── test/
-│   └── verify-tls.sh           # Проверка TLS и доступности сервера
+│   └── verify-tls.sh
 └── README.md
 ```
 
 ---
 
-## Установка на VPS
+## Режим Dual (два сервера)
+
+Кратко:
+
+1. **Сервер 2** (зарубежный, VPN уже стоит): `sudo ./dual-server/patch-server2.sh --server1-ip IP_СЕРВЕРА_1`
+2. Скопировать `relay-server1-params.json` на **сервер 1**
+3. **Сервер 1** (РФ): `sudo ./dual-server/install-server1.sh -y`
+4. Два профиля в клиенте: основной (сервер 1) и резерв (сервер 2)
+
+Подробности, схема, проверка маршрутизации, откат: **[dual-server/README.md](dual-server/README.md)**.
+
+---
+
+## Установка на VPS (один сервер)
 
 ### Пошаговая инструкция на чистом VPS
 
@@ -71,11 +102,11 @@
 
    ```bash
    cd /opt
-   git clone <URL_РЕПОЗИТОРИЯ> vpn-xray
-   cd vpn-xray
+   git clone https://github.com/esovgirenko/VPN-XRAY-Dual.git
+   cd VPN-XRAY-Dual
    ```
 
-   Если репозитория нет — скопируйте папки `server/`, `client/`, `test/` и файл `README.md` на сервер вручную.
+   Если репозитория нет — скопируйте каталоги `server/`, `client/`, `dual-server/`, `test/` на сервер вручную.
 
 3. **Запустите установку**:
 
@@ -305,9 +336,10 @@ chmod +x test/verify-tls.sh
 
 | Fingerprint | Рекомендуемый dest (serverNames)        | Примечание                         |
 |-------------|-----------------------------------------|------------------------------------|
+| **chrome**  | **music.yandex.ru** (сервер 1 Dual, РФ) | По умолчанию в `install-server1.sh` |
 | **ios**     | www.apple.com, www.icloud.com           | **iPhone** — мобильный Safari      |
 | **safari**  | www.apple.com, apple.com                | **MacBook**, iPhone               |
-| chrome      | www.cloudflare.com, cloudflare.com      | MacBook, универсальный             |
+| chrome      | www.cloudflare.com, cloudflare.com      | Универсальный, сервер 2            |
 | firefox     | www.cloudflare.com, cloudflare.com      | Альтернативный браузер             |
 | android     | www.google.com, dns.google              | Android-клиенты                    |
 
@@ -321,6 +353,7 @@ sudo bash /opt/VPN-XRAY/server/change-dest.sh "dns.google:443" "dns.google,googl
 
 **dest** должен поддерживать **TLS 1.3** и желательно **HTTP/2**. Часто используют:
 
+- `music.yandex.ru:443` — сервер 1 Dual (РФ), по умолчанию
 - `www.cloudflare.com:443`
 - `dns.google:443`
 - `www.google.com:443`
@@ -457,5 +490,9 @@ python3 client/reality-link-gen.py /path/to/reality-client-params.json --qr --te
 **Проверка:**
 
 ```bash
+# Один сервер или сервер 2 (Cloudflare)
 ./test/verify-tls.sh <IP_СЕРВЕРА> 443 www.cloudflare.com
+
+# Сервер 1 Dual (Яндекс Музыка)
+./test/verify-tls.sh <IP_СЕРВЕРА_1> 443 music.yandex.ru
 ```
