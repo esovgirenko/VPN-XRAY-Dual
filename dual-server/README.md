@@ -41,6 +41,8 @@ chmod +x install-server1.sh lib/common.sh
 sudo ./install-server1.sh -y
 ```
 
+По умолчанию TLS маскируется под **Яндекс Музыку** (`music.yandex.ru:443`). Другой dest — при интерактивной установке или через переменные `REALITY_DEST_DEFAULT` / `REALITY_SNI_DEFAULT`.
+
 Скачайте параметры основного профиля:
 
 ```bash

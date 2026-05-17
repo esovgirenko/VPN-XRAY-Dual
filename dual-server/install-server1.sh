@@ -13,6 +13,9 @@ source "${SCRIPT_DIR}/lib/common.sh"
 
 readonly CLIENT_PORT="${CLIENT_PORT:-443}"
 readonly RELAY_FILE_DEFAULT="${CONFIG_DIR}/relay-server1-params.json"
+# Маскировка REALITY под Яндекс Музыку (TLS 1.3, легитимный трафик в РФ)
+readonly REALITY_DEST_DEFAULT="${REALITY_DEST_DEFAULT:-music.yandex.ru:443}"
+readonly REALITY_SNI_DEFAULT="${REALITY_SNI_DEFAULT:-music.yandex.ru}"
 
 RELAY_FILE=""
 NON_INTERACTIVE=false
@@ -27,7 +30,7 @@ usage() {
 
 Опции:
   --relay-file PATH   Файл relay-server1-params.json с сервера 2
-  -y, --yes           Значения по умолчанию (порт 443, cloudflare dest, 1 пользователь)
+  -y, --yes           Значения по умолчанию (порт 443, music.yandex.ru, 1 пользователь)
   -h, --help          Справка
 
 Перед запуском на сервере 2 выполните: sudo ./patch-server2.sh
@@ -88,8 +91,8 @@ main() {
 
     local PORT DEST SNI_INPUT FINGERPRINT NUSERS
     prompt_or_default PORT "Порт REALITY для клиентов" "${CLIENT_PORT}"
-    prompt_or_default DEST "dest (маскировка TLS)" "www.cloudflare.com:443"
-    prompt_or_default SNI_INPUT "serverNames (SNI)" "www.cloudflare.com,cloudflare.com"
+    prompt_or_default DEST "dest (маскировка TLS, Яндекс Музыка)" "${REALITY_DEST_DEFAULT}"
+    prompt_or_default SNI_INPUT "serverNames (SNI)" "${REALITY_SNI_DEFAULT}"
     prompt_or_default FINGERPRINT "Fingerprint" "chrome"
     prompt_or_default NUSERS "Количество пользователей" "1"
 
