@@ -176,9 +176,12 @@ main() {
     log_info "Проверка конфигурации..."
     validate_xray_config
 
+    # Пишем параметры до restart/ufw — при обрыве SSH файл уже будет на диске
+    write_relay_params "${RELAY_UUID}"
+    log_info "Параметры для сервера 1: ${RELAY_PARAMS}"
+
     restart_xray
     setup_ufw_relay_from_ip "${RELAY_PORT}" "${SERVER1_IP}"
-    write_relay_params "${RELAY_UUID}"
 
     echo ""
     echo "=============================================="
