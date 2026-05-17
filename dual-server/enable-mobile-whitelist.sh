@@ -170,6 +170,19 @@ main() {
         }' > "${mobile_params}"
     chmod 600 "${mobile_params}"
 
+    local real_user real_home home_copy=""
+    real_user="${SUDO_USER:-${USER}}"
+    if [[ -n "${real_user}" && "${real_user}" != "root" ]]; then
+        real_home=$(getent passwd "${real_user}" 2>/dev/null | cut -d: -f6 || true)
+        if [[ -n "${real_home}" && -d "${real_home}" ]]; then
+            home_copy="${real_home}/reality-client-params-mobile.json"
+            cp "${mobile_params}" "${home_copy}"
+            chown "${real_user}:${real_user}" "${home_copy}"
+            chmod 644 "${home_copy}"
+            log_info "Копия для scp: ${home_copy}"
+        fi
+    fi
+
     echo ""
     echo "=============================================="
     log_info "Мобильный профиль (белые списки) включён."
@@ -179,9 +192,15 @@ main() {
     echo "  SNI:      ${first_sni}"
     echo "  Fingerprint: ${WL_FP}"
     echo "  Файл:     ${mobile_params}"
+    [[ -n "${home_copy}" ]] && echo "  Для scp:  ${home_copy}"
     echo ""
-    echo "На Mac сгенерируйте ссылку:"
-    echo "  python3 client/reality-link-gen.py ${mobile_params} --link --qr --tag VPN-Mobile-Whitelist"
+    echo "На Mac (из папки client репозитория):"
+    if [[ -n "${home_copy}" ]]; then
+        echo "  scp ${real_user}@${external_ip}:~/reality-client-params-mobile.json ./server1-mobile-params.json"
+    else
+        echo "  ssh ${real_user}@${external_ip} \"sudo cat ${mobile_params}\" > server1-mobile-params.json"
+    fi
+    echo "  ./setup-venv.sh && .venv/bin/python reality-link-gen.py ../server1-mobile-params.json --link --qr --tag VPN-Mobile-Whitelist"
     echo ""
     echo "В приложении: отдельный профиль для мобильной сети, Wi‑Fi — основной :443."
     echo "Если не помогло — см. dual-server/WHITELIST_MOBILE.md (блокировка по IP VPS)."

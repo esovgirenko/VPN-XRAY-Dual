@@ -39,16 +39,24 @@ sudo ufw allow 2053/tcp
 
 ### Ссылка для телефона
 
-```bash
-# на сервере — скопировать JSON в домашнюю папку
-sudo cp /usr/local/etc/xray/reality-client-params-mobile.json ~/
-sudo chown $USER:$USER ~/reality-client-params-mobile.json
+Скрипт кладёт копию в `~/reality-client-params-mobile.json` (если запускали через `sudo`).
 
-# на Mac
-scp user@SERVER1:~/reality-client-params-mobile.json ./server1-mobile-params.json
-cd VPN-XRAY-Dual/client
+**На Mac** — путь к репозиторию подставьте свой (не обязательно `VPN-XRAY-Dual`):
+
+```bash
+# 1) скачать JSON с friday (вариант A — из домашней папки на сервере)
+scp user-agent@213.171.31.187:~/reality-client-params-mobile.json ~/Downloads/server1-mobile-params.json
+
+# если «No such file» — один раз на сервере:
+#   sudo cp /usr/local/etc/xray/reality-client-params-mobile.json ~/
+#   sudo chown $USER:$USER ~/reality-client-params-mobile.json
+# или вариант B без копирования на сервере:
+#   ssh user-agent@213.171.31.187 "sudo cat /usr/local/etc/xray/reality-client-params-mobile.json" > ~/Downloads/server1-mobile-params.json
+
+# 2) ссылка (вы уже в папке client — не делайте cd VPN-XRAY-Dual/client)
+cd ~/путь/к/VPN-XRAY-Dual/client
 ./setup-venv.sh
-.venv/bin/python reality-link-gen.py ../server1-mobile-params.json --link --qr --tag VPN-Mobile-Whitelist
+.venv/bin/python reality-link-gen.py ~/Downloads/server1-mobile-params.json --link --qr --tag VPN-Mobile-Whitelist
 ```
 
 ### Два профиля в приложении

@@ -256,16 +256,16 @@ def main() -> None:
         help="Файл reality-client-params.json с сервера или ручной ввод",
     )
     parser.add_argument("--host", help="IP или домен сервера")
-    parser.add_argument("--port", type=int, default=443, help="Порт (по умолчанию 443)")
+    parser.add_argument("--port", type=int, default=None, help="Порт (из файла или 443)")
     parser.add_argument("--uuid", help="UUID пользователя (если не из файла)")
     parser.add_argument("--short-id", dest="short_id", help="ShortId (4–16 hex-символов)")
     parser.add_argument("--public-key", dest="public_key", help="Публичный ключ x25519")
     parser.add_argument("--server-name", dest="server_name", help="SNI (serverName)")
     parser.add_argument(
         "--fingerprint",
-        default="chrome",
+        default=None,
         choices=VALID_FINGERPRINTS,
-        help="Отпечаток TLS (по умолчанию chrome)",
+        help="Отпечаток TLS (из файла или chrome)",
     )
     parser.add_argument("--tag", default="REALITY", help="Имя подключения в клиенте")
     parser.add_argument("--name", help="Имя пользователя для генерации UUID v5 (опционально)")
@@ -284,7 +284,7 @@ def main() -> None:
     if args.input and Path(args.input).is_file():
         data = load_server_params(args.input)
         host = args.host or data.get("serverHost", "")
-        port = args.port or data.get("serverPort", 443)
+        port = args.port if args.port is not None else data.get("serverPort", 443)
         public_key = args.public_key or data.get("publicKey", "")
         server_name = args.server_name or data.get("serverName", "")
         fingerprint = args.fingerprint or data.get("fingerprint", "chrome")
