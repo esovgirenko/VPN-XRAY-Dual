@@ -1,0 +1,2 @@
+# Всегда проверять скрипты с LF (Unix), чтобы на сервере не было "command not found"
+*.sh text eol=lf
