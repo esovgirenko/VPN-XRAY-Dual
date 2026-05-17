@@ -34,7 +34,7 @@ get_xray_arch() {
 install_deps() {
     log_info "Установка зависимостей..."
     apt-get update -qq
-    apt-get install -y -qq curl ca-certificates jq unzip openssl
+    apt-get install -y -qq curl ca-certificates jq unzip openssl xxd
 }
 
 install_xray() {
@@ -74,7 +74,12 @@ install_geodata() {
 }
 
 generate_x25519() {
-    "${INSTALL_DIR}/xray" x25519
+    local out
+    if ! out=$("${INSTALL_DIR}/xray" x25519 2>&1); then
+        log_err "Команда xray x25519 завершилась с ошибкой."
+        exit 1
+    fi
+    echo "${out}"
 }
 
 parse_x25519() {
@@ -83,6 +88,11 @@ parse_x25519() {
     [[ -z "${PRIVATE_KEY}" ]] && PRIVATE_KEY=$(echo "${out}" | grep -i "Private key" | sed 's/.*: *//' | tr -d '\r\n')
     PUBLIC_KEY=$(echo "${out}" | grep -iE "Password:" | sed 's/.*Password: *//i' | tr -d '\r\n')
     [[ -z "${PUBLIC_KEY}" ]] && PUBLIC_KEY=$(echo "${out}" | grep -i "Public key" | sed 's/.*: *//' | tr -d '\r\n')
+    if [[ -z "${PRIVATE_KEY}" || -z "${PUBLIC_KEY}" ]]; then
+        log_err "Не удалось распарсить вывод xray x25519:"
+        echo "${out}"
+        exit 1
+    fi
 }
 
 generate_short_id() {

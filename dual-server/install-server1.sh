@@ -123,9 +123,13 @@ main() {
     done
     CLIENT_JSON="[ ${CLIENT_JSON} ]"
 
+    log_info "Генерация x25519 ключей..."
     local KEY_PAIR
     KEY_PAIR=$(generate_x25519)
     parse_x25519 "${KEY_PAIR}"
+    log_info "Генерация x25519: OK"
+
+    log_info "Определение внешнего IP..."
     EXTERNAL_IP=$(get_external_ip)
 
     log_info "IP сервера 1: ${EXTERNAL_IP}"
@@ -248,7 +252,12 @@ main() {
 }
 EOF
 
-    validate_xray_config
+    log_info "Проверка config.json..."
+    validate_xray_config || {
+        log_err "Конфиг не прошёл проверку. См. вывод выше."
+        exit 1
+    }
+    log_info "Установка systemd..."
     install_systemd
     setup_ufw_ports "${PORT}"
 
