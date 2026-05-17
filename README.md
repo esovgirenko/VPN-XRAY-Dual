@@ -1,6 +1,6 @@
 # VPN-XRAY-Dual: антидетектный VPN на Xray-core и REALITY
 
-Репозиторий: [github.com/esovgirenko/VPN-XRAY-Dual](https://github.com/esovgirenko/VPN-XRAY-Dual)
+Репозитории: [VPN-XRAY](https://github.com/esovgirenko/VPN-XRAY) (основной, `main`) · [VPN-XRAY-Dual](https://github.com/esovgirenko/VPN-XRAY-Dual) (зеркало)
 
 Решение для VPS (Ubuntu 22.04 / Debian 12) на базе **Xray-core** и **REALITY**: маскировка TLS-рукопожатия под легитимные сервисы (Яндекс Музыка, Cloudflare, Google и др.), трафик неотличим от обычного HTTPS для DPI.
 
