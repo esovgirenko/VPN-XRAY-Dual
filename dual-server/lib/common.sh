@@ -62,15 +62,18 @@ install_xray() {
 install_geodata() {
     local geoip="${GEODATA_DIR}/geoip.dat"
     local geosite="${GEODATA_DIR}/geosite.dat"
-    if [[ -f "${geoip}" && -f "${geosite}" ]]; then
-        log_info "Geo-данные уже установлены."
-        return 0
+    if [[ ! -f "${geoip}" || ! -f "${geosite}" ]]; then
+        log_info "Загрузка geoip.dat и geosite.dat (Loyalsoldier)..."
+        curl -fSL -o "${geoip}" \
+            "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+        curl -fSL -o "${geosite}" \
+            "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+    else
+        log_info "Geo-данные уже установлены в ${GEODATA_DIR}."
     fi
-    log_info "Загрузка geoip.dat и geosite.dat (Loyalsoldier)..."
-    curl -fSL -o "${geoip}" \
-        "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
-    curl -fSL -o "${geosite}" \
-        "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+    # Xray по умолчанию ищет geoip.dat рядом с бинарником — дублируем ссылками
+    ln -sf "${geoip}" "${INSTALL_DIR}/geoip.dat"
+    ln -sf "${geosite}" "${INSTALL_DIR}/geosite.dat"
 }
 
 generate_x25519() {
@@ -114,7 +117,7 @@ get_external_ip() {
 }
 
 install_systemd() {
-    cat > /etc/systemd/system/xray.service << 'SVCEOF'
+    cat > /etc/systemd/system/xray.service << SVCEOF
 [Unit]
 Description=Xray-core VPN Service
 Documentation=https://github.com/XTLS/Xray-core
@@ -122,7 +125,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/xray run -config /usr/local/etc/xray/config.json
+Environment=XRAY_LOCATION_ASSET=${GEODATA_DIR}
+ExecStart=${INSTALL_DIR}/xray run -config ${CONFIG_FILE}
 Restart=on-failure
 RestartSec=5s
 LimitNOFILE=1048576
@@ -142,7 +146,7 @@ SVCEOF
 }
 
 validate_xray_config() {
-    "${INSTALL_DIR}/xray" run -test -config "${CONFIG_FILE}"
+    XRAY_LOCATION_ASSET="${GEODATA_DIR}" "${INSTALL_DIR}/xray" run -test -config "${CONFIG_FILE}"
 }
 
 setup_ufw_ports() {
