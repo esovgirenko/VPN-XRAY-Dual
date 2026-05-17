@@ -92,6 +92,7 @@
 3. **Сервер 1** (РФ): `sudo ./install-server1.sh -y` (из корня репозитория)
 4. **Firewall:** панель хостинга + UFW — на сервере 2 открыть **TCP 8443** только с IP сервера 1 (иначе VPN «подключится», но зарубежный интернет не заработает)
 5. Два профиля в клиенте: основной (сервер 1) и резерв (сервер 2)
+6. **Мобильная сеть (белые списки):** `sudo ./enable-mobile-whitelist.sh` — см. [dual-server/WHITELIST_MOBILE.md](dual-server/WHITELIST_MOBILE.md)
 
 Подробности, firewall, устранение неполадок: **[dual-server/README.md](dual-server/README.md)**.
 
