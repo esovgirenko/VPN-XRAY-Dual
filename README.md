@@ -85,7 +85,7 @@
 
 1. **Сервер 2** (зарубежный, VPN уже стоит): `sudo ./dual-server/patch-server2.sh --server1-ip IP_СЕРВЕРА_1`
 2. Скопировать `relay-server1-params.json` на **сервер 1**
-3. **Сервер 1** (РФ): `sudo ./dual-server/install-server1.sh -y`
+3. **Сервер 1** (РФ): `sudo ./install-server1.sh -y` (из корня репозитория)
 4. Два профиля в клиенте: основной (сервер 1) и резерв (сервер 2)
 
 Подробности, схема, проверка маршрутизации, откат: **[dual-server/README.md](dual-server/README.md)**.

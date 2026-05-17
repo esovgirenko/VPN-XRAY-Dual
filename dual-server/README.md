@@ -86,10 +86,12 @@ cd VPN-XRAY-Dual
 На VPS, где **уже работает** `server/install-reality.sh`:
 
 ```bash
-cd VPN-XRAY-Dual/dual-server
-chmod +x patch-server2.sh lib/common.sh
+cd VPN-XRAY-Dual
+chmod +x patch-server2.sh dual-server/lib/common.sh
 sudo ./patch-server2.sh --server1-ip IP_СЕРВЕРА_1
 ```
+
+Скрипты можно запускать и из `dual-server/` (см. пути в таблице ниже).
 
 Скрипт:
 - создаёт `config.json.bak.ДАТА`;
@@ -110,8 +112,8 @@ scp root@SERVER2_IP:/usr/local/etc/xray/reality-client-params.json ./server2-cli
 ```bash
 scp relay-server1-params.json root@SERVER1_IP:/usr/local/etc/xray/
 ssh root@SERVER1_IP
-cd VPN-XRAY-Dual/dual-server
-chmod +x install-server1.sh lib/common.sh
+cd VPN-XRAY-Dual
+chmod +x install-server1.sh dual-server/lib/common.sh
 sudo ./install-server1.sh -y
 ```
 
