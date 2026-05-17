@@ -19,6 +19,7 @@
 - [Скрипты](#скрипты)
 - [Маскировка TLS (сервер 1)](#маскировка-tls-сервер-1)
 - [Клиенты](#клиенты)
+- [Firewall (хостинг + UFW)](#firewall-хостинг--ufw)
 - [Проверка](#проверка)
 - [Файлы на серверах](#файлы-на-серверах)
 - [Смена dest / откат](#смена-dest--откат)
@@ -65,10 +66,12 @@ flowchart TB
 
 | Узел | Расположение | Софт | Порты |
 |------|--------------|------|-------|
-| **Сервер 2** | За рубежом | Уже установлен [VPN-XRAY](../README.md) (`install-reality.sh`) | 443 (клиенты), **8443** (relay с сервера 1) |
-| **Сервер 1** | РФ (или ближе к РФ) | Чистый VPS, Ubuntu 22.04 / Debian 12 | 443 (клиенты) |
+| **Сервер 2** | За рубежом | Уже установлен [VPN-XRAY](../README.md) (`install-reality.sh`) | **443** (клиенты), **8443** (relay только с IP сервера 1) |
+| **Сервер 1** | РФ (или ближе к РФ) | Чистый VPS, Ubuntu 22.04 / Debian 12 | **443** (клиенты) |
 
-На сервере 1 при установке скачиваются `geoip.dat` / `geosite.dat` (Loyalsoldier) для маршрутизации.
+На сервере 1 скачиваются `geoip.dat` / `geosite.dat` (Loyalsoldier). В routing используется **`geosite:category-ru`** (не `geosite:ru` — такого тега в Loyalsoldier нет).
+
+**Важно:** откройте порты и в **панели хостинга**, и в **UFW** на VPS (см. [Firewall](#firewall-хостинг--ufw)).
 
 ---
 
@@ -100,28 +103,41 @@ sudo ./patch-server2.sh --server1-ip IP_СЕРВЕРА_1
 - записывает `/usr/local/etc/xray/relay-server1-params.json`;
 - в UFW открывает 8443 **только** с IP сервера 1 (если указан `--server1-ip`).
 
-Скачайте файл на ПК:
+Скачайте файл на ПК (подставьте пользователя и порт SSH; для `sudo` — см. [копирование файлов](#копирование-файлов-с-сервера)):
 
 ```bash
-scp root@SERVER2_IP:/usr/local/etc/xray/relay-server1-params.json .
-scp root@SERVER2_IP:/usr/local/etc/xray/reality-client-params.json ./server2-client-params.json
+scp -P 22 user@SERVER2_IP:~/relay-server1-params.json .
+# или с сервера после: sudo cp ... ~/relay-server1-params.json && sudo chown $USER:$USER ~/relay-server1-params.json
 ```
 
 ### 2. Сервер 1 — установка
 
+Файл relay должен лежать в **каталоге** `/usr/local/etc/xray/`, не как файл `/usr/local/etc/xray`:
+
 ```bash
-scp relay-server1-params.json root@SERVER1_IP:/usr/local/etc/xray/
-ssh root@SERVER1_IP
-cd VPN-XRAY-Dual
+# на сервере 1:
+sudo mkdir -p /usr/local/etc/xray
+sudo cp relay-server1-params.json /usr/local/etc/xray/
+sudo chmod 600 /usr/local/etc/xray/relay-server1-params.json
+```
+
+Установка (из **корня** репозитория или из `dual-server/`):
+
+```bash
+ssh user@SERVER1_IP
+cd ~/VPN-XRAY-Dual
 chmod +x install-server1.sh dual-server/lib/common.sh
 sudo ./install-server1.sh -y
 ```
 
-Скачайте параметры **нового** основного профиля:
+Если установка оборвалась, но `config.json` уже есть:
 
 ```bash
-scp root@SERVER1_IP:/usr/local/etc/xray/reality-client-params.json ./server1-client-params.json
+cd ~/VPN-XRAY-Dual/dual-server
+sudo ./export-client-params.sh   # создаст reality-client-params.json
 ```
+
+Скачайте параметры **основного** профиля на ПК — см. [копирование](#копирование-файлов-с-сервера).
 
 ### 3. Ссылки для телефона / ПК
 
@@ -149,9 +165,13 @@ cd ../dual-server/client
 
 | Скрипт | Где | Назначение |
 |--------|-----|------------|
-| **`patch-server2.sh`** | Сервер 2 (VPN уже есть) | Добавить relay, не трогая клиентов |
-| **`install-server1.sh`** | Сервер 1 (новый VPS) | REALITY + geo-маршрутизация + outbound на сервер 2 |
+| **`patch-server2.sh`** | Корень репо или `dual-server/` на сервере 2 | Добавить relay, не трогая клиентов |
+| **`install-server1.sh`** | Корень репо или `dual-server/` на сервере 1 | REALITY + geo-маршрутизация + outbound на сервер 2 |
+| `export-relay-params.sh` | Сервер 2 | Восстановить `relay-server1-params.json` из config |
+| `export-client-params.sh` | Сервер 1 | Восстановить `reality-client-params.json` из config |
 | `install-server2.sh` | Чистый VPS за рубежом | Полная установка, если VPN ещё нет |
+
+В корне репозитория есть обёртки `install-server1.sh` и `patch-server2.sh` (делегируют в `dual-server/`).
 
 ### patch-server2.sh
 
@@ -228,14 +248,53 @@ python3 client/reality-link-gen.py server1-client-params.json --link --qr
 
 ---
 
+## Firewall (хостинг + UFW)
+
+Нужны **оба** уровня: панель провайдера и UFW на Linux.
+
+### Сервер 1 (РФ, входной)
+
+| Где | Правило |
+|-----|---------|
+| Панель хостинга | Входящий **TCP 443** |
+| UFW | `sudo ufw allow 443/tcp` |
+
+### Сервер 2 (зарубежный)
+
+| Где | Правило |
+|-----|---------|
+| Панель хостинга | Входящий **TCP 443** (резервные клиенты) |
+| Панель хостинга | Входящий **TCP 8443** с IP сервера 1 (или с любого IP на время отладки) |
+| UFW | `sudo ufw allow 443/tcp` |
+| UFW | **`sudo ufw allow from IP_СЕРВЕРА_1 to any port 8443 proto tcp`** |
+
+Без правила **8443** типичная картина: VPN «подключается», в логах сервера 1 есть `reality-in -> proxy-abroad`, но **зарубежные сайты не открываются**.
+
+Проверка relay с сервера 1:
+
+```bash
+nc -vz IP_СЕРВЕРА_2 8443
+```
+
+`patch-server2.sh --server1-ip IP_СЕРВЕРА_1` добавляет правило UFW автоматически; панель хостинга настраивается вручную.
+
+---
+
 ## Проверка
 
 ### Сервисы на VPS
 
 ```bash
 sudo systemctl status xray
-sudo xray run -test -config /usr/local/etc/xray/config.json
-journalctl -u xray -n 50 --no-pager
+sudo XRAY_LOCATION_ASSET=/usr/local/etc/xray /usr/local/bin/xray run -test -config /usr/local/etc/xray/config.json
+sudo journalctl -u xray -n 50 --no-pager
+```
+
+Успешное подключение клиента в логах сервера 1:
+
+```text
+from IP:PORT accepted tcp:... [reality-in -> proxy-abroad]   # зарубежный трафик
+from IP:PORT accepted tcp:... [reality-in -> direct]       # RU / локальный
 ```
 
 ### Маршрутизация (подключены к серверу 1)
@@ -286,15 +345,45 @@ sudo systemctl restart xray
 
 ---
 
+## Копирование файлов с сервера
+
+Файлы в `/usr/local/etc/xray/` принадлежат root (`chmod 600`). Для `scp` скопируйте в домашний каталог:
+
+```bash
+# на VPS:
+sudo cp /usr/local/etc/xray/reality-client-params.json ~/
+sudo chown $USER:$USER ~/reality-client-params.json
+
+# на Mac (порт SSH — заглавная P):
+scp -P 22 user@SERVER_IP:~/reality-client-params.json ./server1-client-params.json
+```
+
+Через SSH без scp:
+
+```bash
+ssh -t -p 22 user@SERVER_IP \
+  "sudo cat /usr/local/etc/xray/reality-client-params.json" \
+  > ./server1-client-params.json
+```
+
+(`-t` нужен для ввода пароля `sudo`)
+
+---
+
 ## Устранение неполадок
 
 | Симптом | Что проверить |
 |---------|----------------|
-| Сервер 1 не поднимается | `xray run -test -config ...`; есть ли `relay-server1-params.json` |
-| Зарубежные сайты не открываются | Relay: порт 8443 открыт на сервере 2 **с IP сервера 1**; UUID в outbound сервера 1 = relay на сервере 2 |
-| Всё идёт через зарубежье с сервера 1 | Установлены ли `geoip.dat` / `geosite.dat` на сервере 1 |
-| Клиент не подключается к серверу 1 | SNI в ссылке = `music.yandex.ru`; fingerprint `chrome`; порт 443 |
-| После patch сервер 2 сломался | Откат из `config.json.bak.*`; `journalctl -u xray` |
+| VPN подключается, **интернета нет** / только РФ | **UFW и панель хостинга: TCP 8443** на сервере 2 с IP сервера 1; `nc -vz SERVER2 8443` с сервера 1 |
+| `reality-in -> proxy-abroad` в логах, сайты не грузятся | То же — relay до сервера 2 |
+| Сервер 1: `geoip.dat: no such file` | `XRAY_LOCATION_ASSET=/usr/local/etc/xray` в systemd; симлинки в `/usr/local/bin/` (делает `install-server1.sh`) |
+| `geosite:ru` / `code not found: RU` | В конфиге должно быть `geosite:category-ru`, не `geosite:ru` |
+| Нет `reality-client-params.json` | `sudo ./export-client-params.sh` на сервере 1 |
+| Нет `relay-server1-params.json` | `sudo ./export-relay-params.sh` или `sudo ./patch-server2.sh` на сервере 2 |
+| `cp: same file` при install-server1 | Relay уже в `/usr/local/etc/xray/` — нормально после `git pull` |
+| Клиент не подключается к серверу 1 | Панель: **TCP 443**; SNI `music.yandex.ru`; актуальный UUID из последнего `reality-client-params.json` |
+| Резерв работает, основной нет | Закрыт 443 на сервере 1 или неверная ссылка на сервер 1 |
+| После patch сервер 2 сломался | Откат: `config.json.bak.*`; `journalctl -u xray` |
 
 Производительность, BBR, смена порта: [основной README](../README.md#производительность-и-низкая-скорость).
 

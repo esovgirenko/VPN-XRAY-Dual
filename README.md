@@ -62,8 +62,12 @@
 │   ├── README.md                # Полная инструкция Dual
 │   ├── patch-server2.sh         # Патч уже работающего сервера 2
 │   ├── install-server1.sh       # Установка входного сервера (РФ)
+│   ├── export-client-params.sh  # Восстановить клиентский JSON с сервера 1
+│   ├── export-relay-params.sh   # Восстановить relay JSON с сервера 2
 │   ├── install-server2.sh       # Чистая установка сервера 2 (если VPN ещё нет)
 │   └── client/dual-link-gen.py  # Две vless-ссылки (основной + резерв)
+├── install-server1.sh           # обёртка → dual-server/
+├── patch-server2.sh             # обёртка → dual-server/
 ├── server/
 │   ├── install-reality.sh       # Один VPS (интерактивно)
 │   ├── change-dest.sh           # Смена dest / serverNames
@@ -83,12 +87,13 @@
 
 Кратко:
 
-1. **Сервер 2** (зарубежный, VPN уже стоит): `sudo ./dual-server/patch-server2.sh --server1-ip IP_СЕРВЕРА_1`
-2. Скопировать `relay-server1-params.json` на **сервер 1**
+1. **Сервер 2** (зарубежный, VPN уже стоит): `sudo ./patch-server2.sh --server1-ip IP_СЕРВЕРА_1`
+2. Скопировать `relay-server1-params.json` в `/usr/local/etc/xray/` на **сервере 1**
 3. **Сервер 1** (РФ): `sudo ./install-server1.sh -y` (из корня репозитория)
-4. Два профиля в клиенте: основной (сервер 1) и резерв (сервер 2)
+4. **Firewall:** панель хостинга + UFW — на сервере 2 открыть **TCP 8443** только с IP сервера 1 (иначе VPN «подключится», но зарубежный интернет не заработает)
+5. Два профиля в клиенте: основной (сервер 1) и резерв (сервер 2)
 
-Подробности, схема, проверка маршрутизации, откат: **[dual-server/README.md](dual-server/README.md)**.
+Подробности, firewall, устранение неполадок: **[dual-server/README.md](dual-server/README.md)**.
 
 ---
 
