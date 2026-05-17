@@ -60,8 +60,14 @@ load_relay_params() {
     RELAY_PORT=$(jq -r '.relayPort' "${RELAY_FILE}")
     RELAY_UUID=$(jq -r '.relayUuid' "${RELAY_FILE}")
     RELAY_SNI=$(jq -r '.relaySni // "vpn-relay.internal"' "${RELAY_FILE}")
-    cp -f "${RELAY_FILE}" "${CONFIG_DIR}/relay-server1-params.json"
-    chmod 600 "${CONFIG_DIR}/relay-server1-params.json"
+    local dest="${CONFIG_DIR}/relay-server1-params.json"
+    local src_canon dest_canon
+    src_canon=$(readlink -f "${RELAY_FILE}")
+    dest_canon=$(readlink -f "${dest}" 2>/dev/null || true)
+    if [[ "${src_canon}" != "${dest_canon}" ]]; then
+        cp -f "${RELAY_FILE}" "${dest}"
+        chmod 600 "${dest}"
+    fi
     log_info "Relay: ${SERVER2_HOST}:${RELAY_PORT}"
 }
 
