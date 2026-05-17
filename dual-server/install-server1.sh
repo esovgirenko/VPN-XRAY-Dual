@@ -25,7 +25,7 @@ usage() {
 Использование: sudo ./install-server1.sh [опции]
 
 Устанавливает Xray на сервер 1: REALITY для клиентов + маршрутизация
-  geoip:ru / geosite:ru → прямой выход
+  geoip:ru / geosite:category-ru → прямой выход
   остальное → relay на сервер 2
 
 Опции:
@@ -147,7 +147,7 @@ main() {
       },
       {
         "address": "https://common.dot.dns.yandex.net/dns-query",
-        "domains": ["geosite:ru"],
+        "domains": ["geosite:category-ru", "geosite:yandex"],
         "skipFallback": false
       },
       "localhost"
@@ -239,7 +239,7 @@ main() {
       },
       {
         "type": "field",
-        "domain": ["geosite:ru"],
+        "domain": ["geosite:category-ru", "geosite:yandex"],
         "outboundTag": "direct"
       },
       {
